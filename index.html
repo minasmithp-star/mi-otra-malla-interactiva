@@ -1,79 +1,123 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Malla Curricular — Química Farmacéutica</title>
-  <link href="https://fonts.googleapis.com/css2?family=Caudex&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Fuente Caudex -->
+  <link href="https://fonts.googleapis.com/css2?family=Caudex:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
+  <header class="topbar">
     <h1>Malla Curricular — Química Farmacéutica</h1>
-    <div id="progress">
-      <span id="credits-text">0 / 420</span>
-      <div class="bar"><div class="fill"></div></div>
-    </div>
+
     <div class="toolbar">
-      <input id="search-input" type="text" placeholder="Buscar asignatura...">
-      <select id="filter-state">
-        <option value="all">Todas</option>
-        <option value="approved">Aprobadas</option>
-        <option value="unlocked">Desbloqueadas</option>
-        <option value="blocked">Bloqueadas</option>
-        <option value="planned">Planeadas</option>
-      </select>
-      <button id="btn-guardar">💾 Guardar</button>
-      <button id="btn-cargar">📂 Cargar</button>
-      <button id="btn-reset">♻ Reset</button>
+      <div class="legend">
+        <span class="legend-item unlocked">Desbloqueada</span>
+        <span class="legend-item blocked">Bloqueada</span>
+        <span class="legend-item passed">Aprobada</span>
+        <span class="legend-item planned">Planeada</span>
+      </div>
+
+      <div class="actions">
+        <button id="btn-guardar" class="btn">Guardar</button>
+        <button id="btn-cargar" class="btn">Cargar</button>
+        <button id="btn-reset" class="btn btn-outline">Reset</button>
+      </div>
     </div>
-    <div id="search-info" hidden></div>
+
+    <div class="utility">
+      <div id="progress" class="progress">
+        <div class="bar"><span class="fill" style="width:0%"></span></div>
+        <div class="label">
+          <strong>Créditos aprobados:</strong>
+          <span id="credits-text">0 / 420</span>
+        </div>
+      </div>
+
+      <div class="filterbox">
+        <label for="filter-state">Filtrar:</label>
+        <select id="filter-state" aria-label="Filtrar asignaturas">
+          <option value="all">Todas</option>
+          <option value="unlocked">Desbloqueadas</option>
+          <option value="blocked">Bloqueadas</option>
+          <option value="approved">Aprobadas</option>
+          <option value="planned">Planeadas</option>
+        </select>
+      </div>
+
+      <div class="searchbox">
+        <input id="search-input" type="text" placeholder="Buscar asignatura por nombre…" aria-label="Buscar asignatura" />
+        <div id="search-info" class="search-info" hidden></div>
+      </div>
+    </div>
+
+    <section id="panel-avance" class="panel-avance">
+      <h3>Avance Detallado</h3>
+      <div class="grid-avance" id="avance-grid"></div>
+    </section>
+
+    <small class="hint">
+      Clic en una <strong>asignatura</strong> desbloqueada para marcarla como <strong>aprobada</strong>.
+      Usa ⭐ para <strong>planificar</strong>, 📝 para <strong>notas</strong>, y toca el chip 🧮 para editar <strong>créditos</strong>.
+      Mantén 0.5s sobre una asignatura <em>bloqueada</em> (o mantén presionado en móvil) para ver sus requisitos.
+    </small>
   </header>
 
   <main id="viewport">
-    <div id="malla"></div>
+    <div id="malla" aria-label="Malla por semestre"></div>
+
+    <!-- Tooltip de requisitos -->
+    <div id="tooltip" class="tooltip" hidden></div>
+
+    <!-- Modal de notas -->
+    <dialog id="notes-modal" class="modal">
+      <form method="dialog" class="modal-card">
+        <h4 id="notes-title">Notas de la asignatura</h4>
+        <textarea id="notes-text" rows="6" placeholder="Escribe tus notas…"></textarea>
+        <div class="modal-actions">
+          <button id="notes-cancel" value="cancel" class="btn btn-outline">Cancelar</button>
+          <button id="notes-save" value="default" class="btn">Guardar nota</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Modal Agregar Optativa/Electiva -->
+    <dialog id="add-modal" class="modal">
+      <form method="dialog" class="modal-card">
+        <h4>Agregar asignatura</h4>
+        <div class="form-row">
+          <label>Tipo</label>
+          <select id="add-type">
+            <option value="optativa">Optativa</option>
+            <option value="electiva">Electiva</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Nombre</label>
+          <input id="add-name" type="text" placeholder="Nombre de la asignatura" required />
+        </div>
+        <div class="form-row">
+          <label>Créditos</label>
+          <input id="add-credits" type="number" min="0" max="50" step="1" value="0" />
+        </div>
+        <div class="form-row">
+          <label>Prerrequisitos (opcionales)</label>
+          <div id="add-reqs" class="reqs-list"></div>
+          <small class="muted">Puedes seleccionar varios.</small>
+        </div>
+        <div class="modal-actions">
+          <button id="add-cancel" value="cancel" class="btn btn-outline">Cancelar</button>
+          <button id="add-save" value="default" class="btn">Agregar</button>
+        </div>
+      </form>
+    </dialog>
   </main>
 
-  <section id="panel-avance">
-    <h2>Panel de Avance</h2>
-    <div id="avance-grid"></div>
-  </section>
-
-  <div id="tooltip" class="tooltip" hidden></div>
-
-  <!-- Modal notas -->
-  <dialog id="notes-modal">
-    <form method="dialog">
-      <h3 id="notes-title"></h3>
-      <textarea id="notes-text" rows="6" style="width:100%"></textarea>
-      <div class="modal-actions">
-        <button id="notes-save">Guardar</button>
-        <button id="notes-cancel">Cancelar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- Modal añadir optativa/electiva -->
-  <dialog id="add-modal">
-    <form method="dialog">
-      <h3>Agregar asignatura</h3>
-      <label>Tipo:
-        <select id="add-type">
-          <option value="optativa">Optativa</option>
-          <option value="electiva">Electiva</option>
-        </select>
-      </label>
-      <label>Nombre: <input id="add-name" type="text"></label>
-      <label>Créditos: <input id="add-credits" type="number" value="0" min="0" max="50"></label>
-      <div>
-        <strong>Prerrequisitos (opcional):</strong>
-        <div id="add-reqs" class="reqs-list"></div>
-      </div>
-      <div class="modal-actions">
-        <button id="add-save">Agregar</button>
-        <button id="add-cancel">Cancelar</button>
-      </div>
-    </form>
-  </dialog>
+  <footer class="foot">
+    <small>Se guarda automáticamente al cambiar. También puedes usar Guardar/Cargar/Reset.</small>
+  </footer>
 
   <script src="script.js"></script>
 </body>
