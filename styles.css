@@ -1,0 +1,205 @@
+:root{
+  --bg:#ffffff; /* Fondo blanco */
+  --sem-bg:#ede6db; /* Bloques de semestre */
+  --sem-border:#9f988e;
+
+  --unlocked:#80aec3;        /* Asignaturas desbloqueadas */
+  --unlocked-border:#457387;
+
+  --approved:#a2b38b;        /* Asignaturas aprobadas */
+  --approved-border:#768660;
+
+  --blocked-bg:#eef1f3;      /* Asignaturas bloqueadas */
+  --blocked-ink:#5d6772;
+  --blocked-border:#a9b2ba;
+
+  --planned-ring:#b0855b;    /* Planeadas: aro/outline */
+  --planned-bg: #f5efe7;
+
+  --ink:#1c2630;
+  --muted:#6b747d;
+
+  --shadow: 0 6px 16px rgba(0,0,0,.07);
+  --radius: 18px;
+  --radius-sm: 12px;
+}
+
+/* Tipografía Caudex */
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: "Caudex", serif;
+  color:var(--ink);
+  background: var(--bg);
+}
+
+/* Encabezado */
+.topbar{
+  position:sticky; top:0; z-index:5;
+  backdrop-filter: blur(6px);
+  background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.82));
+  border-bottom:1px solid #e7e1d8;
+  padding:10px 16px 8px;
+}
+.topbar h1{
+  margin:4px 0 8px;
+  font-size: clamp(18px, 2.4vw, 28px);
+  letter-spacing:.2px;
+}
+.toolbar{
+  display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+}
+
+/* Leyenda */
+.legend{
+  display:flex; gap:10px; flex-wrap:wrap;
+  font-size:12px;
+}
+.legend-item{
+  display:inline-flex; align-items:center; gap:8px;
+  border-radius:999px; padding:6px 10px; border:1px solid #e1d8cc;
+  background:#fff;
+}
+.legend-item::before{
+  content:""; width:14px; height:14px; border-radius:4px; display:inline-block;
+  border:2px solid transparent;
+}
+.legend-item.unlocked::before{ background:var(--unlocked); border-color:var(--unlocked-border); }
+.legend-item.blocked::before{ background:var(--blocked-bg); border:2px dashed var(--blocked-border); }
+.legend-item.passed::before{ background:var(--approved); border-color:var(--approved-border); }
+.legend-item.planned::before{ background:var(--planned-bg); border-color:var(--planned-ring); }
+
+/* Botones */
+.actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.btn{
+  font-family:"Caudex", serif;
+  padding:8px 14px; border-radius:999px; border:1px solid var(--unlocked-border);
+  background: var(--unlocked);
+  color:#0f2a34; cursor:pointer;
+  box-shadow: var(--shadow);
+  transition: transform .15s ease, box-shadow .15s ease, background-color .25s ease, border-color .25s ease;
+}
+.btn:hover{ transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.08); }
+.btn:active{ transform: translateY(0); }
+.btn.btn-outline{ background:#fff; color:var(--ink); border-color:#c9c2b7; }
+.hint{ color:var(--muted); display:block; margin-top:10px; }
+
+/* Utilidades: progreso + filtro + buscador */
+.utility{
+  display:grid; grid-template-columns: 1fr auto auto; gap:16px; align-items:center;
+  margin-top:10px;
+}
+.progress{ display:flex; align-items:center; gap:12px; min-width: 280px; }
+.progress .bar{
+  width: 260px; height: 10px; background:#f1ece4; border:1px solid var(--sem-border);
+  border-radius:999px; overflow:hidden;
+}
+.progress .fill{ display:block; height:100%; background: var(--approved); transition: width .35s ease; }
+.progress .label{ font-size:14px; }
+
+.filterbox{ display:flex; align-items:center; gap:8px; }
+#filter-state{
+  font-family:"Caudex", serif;
+  padding:6px 10px; border-radius:999px; border:1px solid var(--sem-border); background:#fff;
+}
+
+.searchbox{ display:flex; flex-direction:column; gap:6px; justify-self:end; }
+#search-input{
+  font-family:"Caudex", serif; width: 320px; max-width: 90vw;
+  padding:8px 12px; border-radius:999px; border:1px solid var(--sem-border); background:#fff;
+}
+.search-info{
+  background: var(--sem-bg); border:1px solid var(--sem-border);
+  border-radius: 12px; padding:10px 12px; box-shadow: var(--shadow); max-width: min(520px, 92vw);
+}
+
+/* Panel de avance detallado */
+.panel-avance{
+  margin-top:10px; background:#fff; border:1px solid #e7e1d8; border-radius: 14px; padding:10px 12px;
+}
+.panel-avance h3{ margin:4px 0 10px; font-size:16px; }
+.grid-avance{
+  display:grid; gap:10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.card-metric{
+  background: var(--sem-bg); border:1px solid var(--sem-border); border-radius: 12px; padding:10px 12px;
+}
+.card-metric .title{ font-weight:700; margin-bottom:6px; }
+.card-metric .nums{ font-size:14px; color:#2a2a2a; }
+.badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #d9d1c6; background:#fff; margin-right:6px; font-size:12px; }
+
+/* Contenedor principal */
+#viewport{ position:relative; padding:18px 12px 40px; overflow:auto; }
+
+/* Columnas por semestre */
+#malla{
+  display:grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 280px);
+  gap:18px; align-items:start; position:relative;
+}
+
+/* Semestre */
+.semestre{
+  background: var(--sem-bg); border:1px solid var(--sem-border); border-radius: var(--radius); padding:12px; box-shadow: var(--shadow);
+}
+.semestre h2{ margin:4px 6px 10px; font-size:18px; font-weight:700; color:#2a2a2a; text-align:center; }
+
+/* Asignatura */
+.ramo{
+  position:relative; padding:10px 10px; border-radius: var(--radius-sm); margin:8px 4px;
+  line-height:1.25; user-select:none; border:2px solid transparent; cursor:pointer;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  transition: transform .12s ease, box-shadow .12s ease, background-color .25s ease,
+             border-color .25s ease, color .25s ease, filter .25s ease;
+}
+.ramo .chiprow{
+  position:absolute; right:8px; top:8px; display:flex; gap:6px;
+}
+.iconbtn{
+  font: inherit; line-height: 1; border-radius: 999px; border:1px solid #c9c2b7; background:#fff;
+  padding:2px 6px; cursor:pointer; box-shadow: 0 1px 0 rgba(0,0,0,.04);
+  transition: transform .12s ease, background-color .2s ease, border-color .2s ease;
+}
+.iconbtn:hover{ transform: translateY(-1px); }
+
+/* Estados */
+.ramo.desbloqueado{ background: var(--unlocked); border-color: var(--unlocked-border); }
+.ramo.bloqueado{ background: var(--blocked-bg); color: var(--blocked-ink); border:2px dashed var(--blocked-border); cursor:not-allowed; filter:saturate(0.3); }
+.ramo.aprobado{ background: var(--approved) !important; color:#12210f; border-color: var(--approved-border) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 2px 6px rgba(0,0,0,.12); }
+.ramo.planeada{ outline: 2px solid var(--planned-ring); outline-offset: 1px; background: var(--planned-bg); }
+
+.ramo.desbloqueado:not(.aprobado):hover{ transform: scale(1.03); box-shadow: 0 10px 20px rgba(0,0,0,.12); }
+
+/* Resaltado por dependencia */
+.dim .ramo:not(.is-highlight){ filter: grayscale(.35) opacity(.6); }
+.ramo.is-highlight{ outline: 2px solid var(--unlocked-border); outline-offset: 1px; }
+
+/* Tooltip requisitos */
+.tooltip{
+  position:absolute; z-index:3; background: var(--sem-bg); color: var(--ink);
+  border:1px solid var(--sem-border); border-radius: 12px; box-shadow: var(--shadow);
+  padding:10px 12px; max-width: 320px; font-size:14px; pointer-events:none;
+  opacity:0; transform: translateY(-4px); transition: opacity .18s ease, transform .18s ease;
+}
+.tooltip.show{ opacity:1; transform: translateY(0); }
+
+/* Modal de notas */
+.modal::backdrop{ background: rgba(0,0,0,.25); }
+.modal{ border: none; padding: 0; background: transparent; }
+.modal-card{
+  background:#fff; border:1px solid #e7e1d8; border-radius: 14px; box-shadow: var(--shadow);
+  padding:12px; width: min(520px, 92vw);
+}
+.modal-card h4{ margin:0 0 8px; }
+.modal-card textarea{
+  width:100%; box-sizing:border-box; font-family:"Caudex", serif; padding:8px 10px;
+  border-radius: 10px; border:1px solid var(--sem-border); background:#fff; resize: vertical;
+}
+.modal-actions{ margin-top:10px; display:flex; gap:8px; justify-content:flex-end; }
+
+/* Pulse */
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(69,115,135,.55); } 70% { box-shadow: 0 0 0 10px rgba(69,115,135,0); } 100% { box-shadow: 0 0 0 0 rgba(69,115,135,0); } }
+.ramo.pulse{ animation: pulse 1s ease-out 2; }
+
+/* Footer */
+.foot{ padding:14px 16px 24px; color:var(--muted); text-align:center; }
