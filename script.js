@@ -137,8 +137,8 @@ const addCancel = document.getElementById("add-cancel");
 /* ---------- Estructuras ---------- */
 const COURSES = new Map();
 const NAME_TO_ID = new Map();
-const FWD = new Map();
-const REV = new Map();
+const FWD = new Map(); // id -> Set(dependientes)
+const REV = new Map(); // id -> Set(prerrequisitos)
 const SEM_CREDITS = [];
 const SEM_NODES = [];
 let notesCurrentId = null;
@@ -264,11 +264,13 @@ function renderCourse(semIndex, item, kind){
     openNotesModal(c);
   });
 
+  // Highlight + tooltip bloqueadas (0.5s)
   div.addEventListener("mouseenter", ()=> applyHighlight(c.id));
   div.addEventListener("mouseleave", ()=> clearHighlight());
   div.addEventListener("mouseenter",(e)=>{ if (div.classList.contains("bloqueado")) scheduleTooltip(c,e); });
   div.addEventListener("mousemove",(e)=>{ if (activeTooltipTarget===c.id) positionTooltipToEvent(e); });
   div.addEventListener("mouseleave", cancelTooltip);
+  // touch long-press
   div.addEventListener("touchstart",(e)=>{
     if (!div.classList.contains("bloqueado")) return;
     e.preventDefault();
@@ -365,6 +367,7 @@ function updateCreditsUI(){
   const pct = Math.max(0, Math.min(100, Math.round((ap/420)*100)));
   progressFill.style.width = `${pct}%`;
 
+  // Por semestre: planeados/50
   SEM_CREDITS.length = PLAN.length;
   for (let i=0;i<PLAN.length;i++){ SEM_CREDITS[i] = 0; }
   COURSES.forEach(c=>{ if (c.planned) SEM_CREDITS[c.semIndex] += (c.cr||0); });
@@ -391,6 +394,7 @@ function renderAvance(){
     return { semestre:i+1, total:t, aprob:a, desblo:u, bloq:b, plan:p, capr, cplan };
   });
 
+  // por año
   const yearTotals = [];
   for (let y=0; y<semTotals.length/2; y++){
     const s1 = semTotals[2*y], s2 = semTotals[2*y+1];
@@ -496,7 +500,7 @@ function hideTooltip(){
 }
 function cancelTooltip(){ clearTimeout(hoverTimer); if (activeTooltipTarget) hideTooltip(); }
 
-/* ---------- Highlight dependencias ---------- */
+/* ---------- Resaltado dependencias ---------- */
 function ancestorsOf(id){ const vis=new Set(), q=[id]; while(q.length){ const cur=q.pop(); (REV.get(cur)||[]).forEach(p=>{ if(!vis.has(p)){ vis.add(p); q.push(p);} }); } return vis; }
 function descendantsOf(id){ const vis=new Set(), q=[id]; while(q.length){ const cur=q.pop(); (FWD.get(cur)||[]).forEach(n=>{ if(!vis.has(n)){ vis.add(n); q.push(n);} }); } return vis; }
 function applyHighlight(centerId){
@@ -529,6 +533,7 @@ function loadState(){
   const data = JSON.parse(raw);
   const aliasId = buildAliasIdMap();
 
+  // migrar ids antiguos por alias
   const migrated = {};
   Object.keys(data).forEach(oldId=>{
     const rec = data[oldId];
@@ -540,6 +545,7 @@ function loadState(){
     const rec = migrated[id];
     let c = COURSES.get(id);
     if (!c){
+      // podría ser una asignatura agregada (opt/electiva)
       const nameGuess = id.replace(/-/g," ").replace(/\b\w/g,ch=>ch.toUpperCase());
       const item = { name: nameGuess, cr: rec.cr||0, req: rec.rn||[] };
       renderCourse(rec.s ?? 0, item, rec.k || "opt");
@@ -604,6 +610,7 @@ function setupSearch(){
 function init(){
   buildModel();
 
+  // Construir grafos base
   COURSES.forEach(c=>{
     c.reqIds = (c.reqNames||[]).map(n => NAME_TO_ID.get(n) || slug(n));
     c.reqIds.forEach(rid => { FWD.get(rid)?.add(c.id); REV.get(c.id)?.add(rid); });
@@ -612,10 +619,12 @@ function init(){
   refreshLockStates();
   setupSearch();
 
+  // Restaurar estado (con migración por alias)
   try{ loadState(); }catch(e){}
 
   refreshLockStates();
 
+  // Botones
   document.getElementById("btn-guardar").addEventListener("click", saveState);
   document.getElementById("btn-cargar").addEventListener("click", ()=>{ loadState(); refreshLockStates(); });
   document.getElementById("btn-reset").addEventListener("click", ()=>{
@@ -623,6 +632,7 @@ function init(){
     location.reload();
   });
 
+  // Accesibilidad Enter
   document.addEventListener("keydown",(e)=>{
     if (e.key==="Enter"){
       const el = document.activeElement;
