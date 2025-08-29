@@ -76,14 +76,14 @@ body{
 #search-input{ font-family:"Caudex", serif; width:320px; max-width:90vw; padding:8px 12px; border-radius:999px; border:1px solid var(--sem-border); background:#fff; }
 .search-info{ background:var(--sem-bg); border:1px solid var(--sem-border); border-radius:12px; padding:10px 12px; box-shadow:var(--shadow); max-width:min(520px, 92vw); }
 
-/* Panel avance */
+/* Panel (solo resumen global) */
 .panel-avance{ margin-top:10px; background:#fff; border:1px solid #e7e1d8; border-radius:14px; padding:10px 12px; }
 .panel-avance h3{ margin:4px 0 10px; font-size:16px; }
-.grid-avance{ display:grid; gap:10px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.grid-avance{ display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .card-metric{ background:var(--sem-bg); border:1px solid var(--sem-border); border-radius:12px; padding:10px 12px; }
 .card-metric .title{ font-weight:700; margin-bottom:6px; }
-.card-metric .nums{ font-size:14px; color:#2a2a2a; }
-.badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #d9d1c6; background:#fff; margin-right:6px; font-size:12px; }
+.card-metric .nums{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:6px 8px; font-size:14px; color:#2a2a2a; }
+.badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #d9d1c6; background:#fff; font-size:12px; }
 
 /* Main */
 #viewport{ position:relative; padding:18px 12px 40px; overflow:auto; }
@@ -94,34 +94,55 @@ body{
 .semestre h2{ margin:4px 6px 10px; font-size:18px; font-weight:700; color:#2a2a2a; text-align:center; }
 .sem-credits{ position:absolute; right:10px; top:10px; font-size:12px; background:#fff; border:1px solid var(--sem-border); border-radius:999px; padding:2px 8px; }
 
-/* Secciones dentro del semestre */
+/* Secciones */
 .section-title{ font-weight:700; font-size:14px; margin:10px 4px 2px; color:#2a2a2a; }
 .sem-section{ margin-top:6px; }
+
+/* Banner agregar (más pequeño y sin texto extra) */
 .add-banner{
-  margin:8px 4px 0; padding:8px 10px; border-radius:12px; border:1px dashed var(--sem-border);
-  background:#fff; cursor:pointer; display:flex; align-items:center; gap:10px;
+  margin:8px 4px 0; padding:6px 10px; border-radius:12px; border:1px dashed var(--sem-border);
+  background:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size:0.95em;
 }
+.add-banner strong{ font-weight:700; }
 .add-banner:hover{ background:#faf7f2; }
 
 /* Asignatura */
 .ramo{
   position:relative; padding:10px 10px; border-radius:var(--radius-sm); margin:8px 4px;
-  line-height:1.25; user-select:none; border:2px solid transparent; cursor:pointer;
+  line-height:1.35; user-select:none; border:2px solid transparent; cursor:pointer;
   box-shadow:0 1px 0 rgba(0,0,0,0.04);
   transition: transform .12s ease, box-shadow .12s ease, background-color .25s ease, border-color .25s ease, color .25s ease, filter .25s ease;
 }
-.ramo .chiprow{ position:absolute; right:8px; top:8px; display:flex; gap:6px; }
+
+/* NUEVO: layout en dos filas: título y meta (chips) */
+.ramo-title{
+  font-weight:700; padding-right:4px; word-break:break-word;
+}
+.ramo-meta{
+  margin-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+}
+.meta-left{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.meta-right{ display:flex; align-items:center; gap:6px; }
+
+/* Botones y chips */
 .iconbtn{
   font:inherit; line-height:1; border-radius:999px; border:1px solid #c9c2b7; background:#fff;
   padding:2px 6px; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.04);
   transition: transform .12s ease, background-color .2s ease, border-color .2s ease;
 }
 .iconbtn:hover{ transform:translateY(-1px); }
-
-/* Chip créditos */
 .credit-chip{
-  position:absolute; left:8px; top:8px; font-size:12px; background:#fff; border:1px solid var(--sem-border);
-  border-radius:999px; padding:2px 6px; cursor:pointer; user-select:none;
+  font-size:12px; background:#fff; border:1px solid var(--sem-border);
+  border-radius:999px; padding:2px 8px; cursor:pointer; user-select:none;
+}
+
+/* Editor de créditos (banner inline en la tarjeta) */
+.credit-editor{
+  margin-top:8px; background:#fff; border:1px solid var(--sem-border); border-radius:10px;
+  padding:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.credit-editor input{
+  width:80px; padding:6px 8px; border:1px solid var(--sem-border); border-radius:8px; font-family:"Caudex", serif;
 }
 
 /* Estados */
@@ -129,10 +150,9 @@ body{
 .ramo.bloqueado{ background:var(--blocked-bg); color:var(--blocked-ink); border:2px dashed var(--blocked-border); cursor:not-allowed; filter:saturate(0.3); }
 .ramo.aprobado{ background:var(--approved)!important; color:#12210f; border-color:var(--approved-border)!important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 2px 6px rgba(0,0,0,.12); }
 .ramo.planeada{ outline:2px solid var(--planned-ring); outline-offset:1px; background:var(--planned-bg); }
-
 .ramo.desbloqueado:not(.aprobado):hover{ transform:scale(1.03); box-shadow:0 10px 20px rgba(0,0,0,.12); }
 
-/* Resaltado dependencias (sin líneas guía) */
+/* Resaltado dependencias */
 .dim .ramo:not(.is-highlight){ filter:grayscale(.35) opacity(.6); }
 .ramo.is-highlight{ outline:2px solid var(--unlocked-border); outline-offset:1px; }
 
@@ -158,6 +178,8 @@ body{
   border-radius:10px; border:1px solid var(--sem-border); background:#fff;
 }
 .form-row{ margin:8px 0; display:flex; flex-direction:column; gap:6px; }
+.req-search{ width:100%; padding:8px 10px; border:1px solid var(--sem-border); border-radius:10px; margin-bottom:6px; }
+.reqs-list label{ display:flex; align-items:center; gap:8px; margin:4px 0; }
 .modal-actions{ margin-top:10px; display:flex; gap:8px; justify-content:flex-end; }
 
 @keyframes pulse { 0%{ box-shadow:0 0 0 0 rgba(69,115,135,.55);} 70%{ box-shadow:0 0 0 10px rgba(69,115,135,0);} 100%{ box-shadow:0 0 0 0 rgba(69,115,135,0);} }
