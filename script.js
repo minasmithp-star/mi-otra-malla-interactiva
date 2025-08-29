@@ -1,8 +1,9 @@
 /* =========================================================================
-   Renombrado con alias + migración de IDs + créditos precargados
+   Malla QF refinada: resumen global, chips en fila, buscador de prerrequisitos,
+   editor de créditos inline, banner agregar compacto, alias y créditos cargados.
    ========================================================================= */
 
-const LSK = "malla_qf_estado_v6";
+const LSK = "malla_qf_estado_v7";
 
 /* ---------- Alias de nombres (viejo -> nuevo) ---------- */
 const NAME_ALIASES = new Map([
@@ -27,14 +28,8 @@ const NAME_ALIASES = new Map([
 const slug = (s) => s.toLowerCase()
   .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-function el(tag, cls, text){
-  const n = document.createElement(tag);
-  if (cls) n.className = cls;
-  if (text != null) n.textContent = text;
-  return n;
-}
-function normalizeName(name){ return NAME_ALIASES.get(name) || name; }
+const el = (tag, cls, text)=>{ const n=document.createElement(tag); if(cls)n.className=cls; if(text!=null)n.textContent=text; return n; };
+const normalizeName = (name)=> NAME_ALIASES.get(name) || name;
 
 /* ---------- Plan base (obligatorias) con CRÉDITOS PRECARGADOS ---------- */
 const PLAN = [
@@ -129,17 +124,19 @@ const addType = document.getElementById("add-type");
 const addName = document.getElementById("add-name");
 const addCredits = document.getElementById("add-credits");
 const addReqs = document.getElementById("add-reqs");
+const addReqSearch = document.getElementById("add-req-search");
 const addSave = document.getElementById("add-save");
 const addCancel = document.getElementById("add-cancel");
 
 /* ---------- Estructuras ---------- */
 const COURSES = new Map();
 const NAME_TO_ID = new Map();
-const FWD = new Map(); // id -> Set(dependientes)
-const REV = new Map(); // id -> Set(prerrequisitos)
+const FWD = new Map();
+const REV = new Map();
 const SEM_CREDITS = [];
 const SEM_NODES = [];
 let notesCurrentId = null;
+let currentCreditEditorFor = null;
 
 /* ---------- Render ---------- */
 function sectionContainer(title){
@@ -163,7 +160,7 @@ function buildModel(){
     const secEl = sectionContainer("Electivas"); secEl.wrap.style.display="none";
 
     const addBanner = el("div","add-banner");
-    addBanner.innerHTML = `<strong>➕ Agregar asignatura</strong><span class="muted">Optativa/Electiva con créditos y prerrequisitos opcionales</span>`;
+    addBanner.innerHTML = `<strong>➕ Agregar asignatura</strong>`;
     addBanner.addEventListener("click", ()=> openAddModal(idx));
 
     semDiv.append(secOb.wrap, secOp.wrap, secEl.wrap, addBanner);
@@ -174,16 +171,13 @@ function buildModel(){
     mallaDiv.appendChild(semDiv);
   });
 
-  // Resolver requisitos (names -> ids), aceptando alias
+  // mapa de requisitos
   COURSES.forEach(c => {
     c.reqIds = (c.reqNames||[]).map(n => {
       const nn = normalizeName(n);
       return NAME_TO_ID.get(nn) || NAME_TO_ID.get(n) || slug(nn);
     });
-    c.reqIds.forEach(rid => {
-      FWD.get(rid)?.add(c.id);
-      REV.get(c.id)?.add(rid);
-    });
+    c.reqIds.forEach(rid => { FWD.get(rid)?.add(c.id); REV.get(c.id)?.add(rid); });
   });
 
   updateSemCounters();
@@ -208,16 +202,22 @@ function renderCourse(semIndex, item, kind){
 
   const div = el("div","ramo");
   div.id = id; div.dataset.id = id; div.dataset.name = visibleName;
-  div.textContent = visibleName;
 
+  // Título
+  const title = el("div","ramo-title",visibleName);
+  div.appendChild(title);
+
+  // Meta row: credit chip + plan/notes buttons
+  const meta = el("div","ramo-meta");
+  const metaLeft = el("div","meta-left");
   const creditChip = el("div","credit-chip",`🧮 ${item.cr||0} cr.`);
-  div.appendChild(creditChip);
-
-  const chiprow = el("div","chiprow");
+  metaLeft.appendChild(creditChip);
+  const metaRight = el("div","meta-right");
   const btnPlan = el("button","iconbtn plan-btn","⭐");
   const btnNote = el("button","iconbtn note-btn","📝");
-  chiprow.append(btnPlan, btnNote);
-  div.appendChild(chiprow);
+  metaRight.append(btnPlan, btnNote);
+  meta.append(metaLeft, metaRight);
+  div.appendChild(meta);
 
   targetList.appendChild(div);
 
@@ -229,15 +229,10 @@ function renderCourse(semIndex, item, kind){
   };
   COURSES.set(id, c);
 
+  // Editor de créditos inline
   creditChip.addEventListener("click",(e)=>{
     e.stopPropagation();
-    const val = prompt(`Créditos para "${c.name}"`, String(c.cr||0));
-    if (val==null) return;
-    const n = Math.max(0, Math.min(50, parseInt(val,10)||0));
-    c.cr = n;
-    creditChip.textContent = `🧮 ${n} cr.`;
-    updateCreditsUI();
-    saveState();
+    openCreditEditor(c);
   });
 
   div.addEventListener("click",(e)=>{
@@ -285,6 +280,47 @@ function renderCourse(semIndex, item, kind){
   div.classList.add("bloqueado");
 }
 
+/* ---------- Editor inline de créditos ---------- */
+function closeCreditEditor(){
+  if (!currentCreditEditorFor) return;
+  const c = currentCreditEditorFor;
+  const ed = c.el.querySelector(".credit-editor");
+  if (ed) ed.remove();
+  currentCreditEditorFor = null;
+}
+function openCreditEditor(c){
+  // cierra cualquiera abierto
+  if (currentCreditEditorFor && currentCreditEditorFor.id !== c.id) closeCreditEditor();
+  if (currentCreditEditorFor && currentCreditEditorFor.id === c.id){
+    closeCreditEditor(); return;
+  }
+  const existing = c.el.querySelector(".credit-editor");
+  if (existing) { existing.remove(); }
+
+  const editor = el("div","credit-editor");
+  const label = el("span",null,"Editar créditos:");
+  const input = document.createElement("input");
+  input.type = "number"; input.min = "0"; input.max = "50"; input.step = "1"; input.value = String(c.cr||0);
+  const btnCancel = el("button","iconbtn","Cancelar");
+  const btnSave = el("button","iconbtn","Guardar");
+
+  btnCancel.addEventListener("click",(e)=>{ e.stopPropagation(); closeCreditEditor(); });
+  btnSave.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const n = Math.max(0, Math.min(50, parseInt(input.value,10)||0));
+    c.cr = n;
+    const chip = c.el.querySelector(".credit-chip");
+    if (chip) chip.textContent = `🧮 ${n} cr.`;
+    updateCreditsUI();
+    saveState();
+    closeCreditEditor();
+  });
+
+  editor.append(label, input, btnSave, btnCancel);
+  c.el.appendChild(editor);
+  currentCreditEditorFor = c;
+}
+
 /* ---------- Agregar Optativa/Electiva ---------- */
 let addTargetSem = null;
 function openAddModal(semIndex){
@@ -294,18 +330,33 @@ function openAddModal(semIndex){
   addCredits.value = "0";
   renderReqsSelector();
   addModal.showModal();
+
+  // Enfocar buscador de prerrequisitos al abrir
+  setTimeout(()=> addReqSearch?.focus(), 50);
 }
 function renderReqsSelector(){
+  // Render completo
   addReqs.innerHTML = "";
   const list = Array.from(COURSES.values()).sort((a,b)=> a.name.localeCompare(b.name));
   list.forEach(c=>{
     const id = `req-${c.id}`;
     const w = el("label");
     const cb = el("input"); cb.type="checkbox"; cb.value=c.id; cb.id=id;
-    const span = el("span",null," "+c.name);
+    const span = el("span",null,c.name);
     w.append(cb, span);
     addReqs.appendChild(w);
   });
+  // Filtro por texto
+  if (addReqSearch){
+    addReqSearch.value = "";
+    addReqSearch.oninput = ()=>{
+      const q = addReqSearch.value.trim().toLowerCase();
+      Array.from(addReqs.querySelectorAll("label")).forEach(lab=>{
+        const txt = lab.textContent.toLowerCase();
+        lab.style.display = (!q || txt.includes(q)) ? "" : "none";
+      });
+    };
+  }
 }
 addSave.addEventListener("click",(e)=>{
   e.preventDefault();
@@ -333,32 +384,27 @@ addSave.addEventListener("click",(e)=>{
 addCancel.addEventListener("click",(e)=>{ e.preventDefault(); addModal.close(); });
 
 /* ---------- Estados / dependencias ---------- */
-function unmetReqs(c){
-  return c.reqIds.filter(rid => !COURSES.get(rid)?.approved);
-}
+function unmetReqs(c){ return c.reqIds.filter(rid => !COURSES.get(rid)?.approved); }
 function refreshLockStates(){
+  closeCreditEditor();
   COURSES.forEach(c=>{
-    const el = c.el;
+    const elv = c.el;
     const unmet = unmetReqs(c);
     const unlocked = (c.reqIds.length===0 || unmet.length===0);
-    el.classList.toggle("desbloqueado", unlocked);
-    el.classList.toggle("bloqueado", !unlocked);
-    el.classList.toggle("aprobado", !!c.approved);
-    el.classList.toggle("planeada", !!c.planned);
-    el.tabIndex = unlocked ? 0 : -1;
-    el.setAttribute("aria-disabled", unlocked ? "false" : "true");
+    elv.classList.toggle("desbloqueado", unlocked);
+    elv.classList.toggle("bloqueado", !unlocked);
+    elv.classList.toggle("aprobado", !!c.approved);
+    elv.classList.toggle("planeada", !!c.planned);
+    elv.tabIndex = unlocked ? 0 : -1;
+    elv.setAttribute("aria-disabled", unlocked ? "false" : "true");
   });
   applyFilter();
   updateCreditsUI();
-  renderAvance();
+  renderResumenGlobal();
 }
 
 /* ---------- Créditos ---------- */
-function sumApprovedCredits(){
-  let sum = 0;
-  COURSES.forEach(c => { if (c.approved) sum += (c.cr||0); });
-  return sum;
-}
+function sumApprovedCredits(){ let sum = 0; COURSES.forEach(c => { if (c.approved) sum += (c.cr||0); }); return sum; }
 function updateCreditsUI(){
   const ap = sumApprovedCredits();
   creditsText.textContent = `${ap} / 420`;
@@ -375,62 +421,30 @@ function updateCreditsUI(){
   });
 }
 
-/* ---------- Panel avance ---------- */
-function renderAvance(){
-  const semTotals = PLAN.map((sem, i) => {
-    let t=0,a=0,u=0,b=0,p=0, capr=0, cplan=0;
-    COURSES.forEach(c=>{
-      if (c.semIndex!==i) return;
-      t++;
-      const unmet = unmetReqs(c);
-      const isBlocked = !(c.reqIds.length===0 || unmet.length===0);
-      if (c.approved){ a++; capr += (c.cr||0); }
-      else if (isBlocked){ b++; }
-      else { u++; }
-      if (c.planned){ p++; cplan += (c.cr||0); }
-    });
-    return { semestre:i+1, total:t, aprob:a, desblo:u, bloq:b, plan:p, capr, cplan };
+/* ---------- Resumen Global (reemplaza el panel detallado) ---------- */
+function renderResumenGlobal(){
+  let total=0, aprob=0, desblo=0, bloq=0, plan=0, capr=0, cplan=0;
+  COURSES.forEach(c=>{
+    total++;
+    const blocked = !(c.reqIds.length===0 || unmetReqs(c).length===0);
+    if (c.approved){ aprob++; capr += (c.cr||0); }
+    else if (blocked){ bloq++; }
+    else { desblo++; }
+    if (c.planned){ plan++; cplan += (c.cr||0); }
   });
-
-  // por año
-  const yearTotals = [];
-  for (let y=0; y<semTotals.length/2; y++){
-    const s1 = semTotals[2*y], s2 = semTotals[2*y+1];
-    const agg = {
-      year:y+1,
-      total:(s1?.total||0)+(s2?.total||0),
-      aprob:(s1?.aprob||0)+(s2?.aprob||0),
-      desblo:(s1?.desblo||0)+(s2?.desblo||0),
-      bloq:(s1?.bloq||0)+(s2?.bloq||0),
-      plan:(s1?.plan||0)+(s2?.plan||0),
-      capr:(s1?.capr||0)+(s2?.capr||0),
-      cplan:(s1?.cplan||0)+(s2?.cplan||0),
-    };
-    yearTotals.push(agg);
-  }
-
-  const toCard = (title, d) => `
+  const html = `
     <div class="card-metric">
-      <div class="title">${title}</div>
+      <div class="title">Global</div>
       <div class="nums">
-        <span class="badge">Total: ${d.total}</span>
-        <span class="badge">Aprob: ${d.aprob}</span>
-        <span class="badge">Desbloq: ${d.desblo}</span>
-        <span class="badge">Bloq: ${d.bloq}</span>
-        <span class="badge">Plan: ${d.plan}</span>
-        <span class="badge">Créd. aprob: ${d.capr}</span>
-        <span class="badge">Créd. plan: ${d.cplan}</span>
+        <span class="badge">Asignaturas: ${total}</span>
+        <span class="badge">Aprobadas: ${aprob}</span>
+        <span class="badge">Desbloqueadas: ${desblo}</span>
+        <span class="badge">Bloqueadas: ${bloq}</span>
+        <span class="badge">Planeadas: ${plan}</span>
+        <span class="badge">Créd. aprobados: ${capr}</span>
+        <span class="badge">Créd. planeados: ${cplan}</span>
       </div>
     </div>`;
-
-  const global = semTotals.reduce((acc,s)=>({
-    total:acc.total+s.total, aprob:acc.aprob+s.aprob, desblo:acc.desblo+s.desblo,
-    bloq:acc.bloq+s.bloq, plan:acc.plan+s.plan, capr:acc.capr+s.capr, cplan:acc.cplan+s.cplan
-  }), {total:0, aprob:0, desblo:0, bloq:0, plan:0, capr:0, cplan:0});
-
-  let html = toCard("Global", global);
-  yearTotals.forEach(y => { html += toCard(`Año ${y.year}`, y); });
-  semTotals.forEach(s => { html += toCard(`Semestre ${s.semestre}`, s); });
   avanceGrid.innerHTML = html;
 }
 
@@ -438,14 +452,13 @@ function renderAvance(){
 function applyFilter(){
   const v = filterSelect.value;
   COURSES.forEach(c=>{
-    const unmet = unmetReqs(c);
-    const isBlocked = !(c.reqIds.length===0 || unmet.length===0);
-    const isUnlocked = !isBlocked && !c.approved;
+    const blocked = !(c.reqIds.length===0 || unmetReqs(c).length===0);
+    const unlocked = !blocked && !c.approved;
     const isApproved = !!c.approved;
     const isPlanned = !!c.planned;
     let show = true;
-    if (v==="unlocked") show = isUnlocked;
-    else if (v==="blocked") show = isBlocked;
+    if (v==="unlocked") show = unlocked;
+    else if (v==="blocked") show = blocked;
     else if (v==="approved") show = isApproved;
     else if (v==="planned") show = isPlanned;
     c.el.style.display = show ? "" : "none";
@@ -620,7 +633,7 @@ function init(){
 
   refreshLockStates();
 
-  // Botones
+  // Botones barra
   document.getElementById("btn-guardar").addEventListener("click", saveState);
   document.getElementById("btn-cargar").addEventListener("click", ()=>{ loadState(); refreshLockStates(); });
   document.getElementById("btn-reset").addEventListener("click", ()=>{
@@ -638,7 +651,13 @@ function init(){
     }
   });
 }
-init();
+
+window.addEventListener("DOMContentLoaded", () => {
+  try { init(); } catch (err) {
+    console.error("Fallo en init():", err);
+    alert("Ocurrió un problema inicializando la malla. Revisa la consola (F12).");
+  }
+});
 
 /* ---------- Miscelánea ---------- */
 function updateSemCounters(){
