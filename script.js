@@ -1,7 +1,5 @@
 /* =========================================================================
    Renombrado con alias + migración de IDs + créditos precargados
-   - Créditos integrados desde tu tabla
-   - Mantiene planeados/notas/filtro/paneles/tooltip 0.5s, etc.
    ========================================================================= */
 
 const LSK = "malla_qf_estado_v6";
@@ -533,7 +531,6 @@ function loadState(){
   const data = JSON.parse(raw);
   const aliasId = buildAliasIdMap();
 
-  // migrar ids antiguos por alias
   const migrated = {};
   Object.keys(data).forEach(oldId=>{
     const rec = data[oldId];
@@ -545,7 +542,6 @@ function loadState(){
     const rec = migrated[id];
     let c = COURSES.get(id);
     if (!c){
-      // podría ser una asignatura agregada (opt/electiva)
       const nameGuess = id.replace(/-/g," ").replace(/\b\w/g,ch=>ch.toUpperCase());
       const item = { name: nameGuess, cr: rec.cr||0, req: rec.rn||[] };
       renderCourse(rec.s ?? 0, item, rec.k || "opt");
@@ -651,32 +647,3 @@ function updateSemCounters(){
     if (badge) badge.textContent = `0 / 50`;
   });
 }
-
-/* ---------- Tooltip helpers ---------- */
-let hoverTimer = null, touchTimer = null, activeTooltipTarget = null;
-function scheduleTooltip(c, evt){
-  clearTimeout(hoverTimer);
-  hoverTimer = setTimeout(()=> showTooltipForCourse(c, evt.clientX, evt.clientY), 500);
-}
-function positionTooltipToEvent(evt){ positionTooltip(evt.clientX, evt.clientY); }
-function positionTooltip(clientX, clientY){
-  const rb = viewport.getBoundingClientRect();
-  tooltip.style.left = (clientX - rb.left + viewport.scrollLeft + 12) + "px";
-  tooltip.style.top  = (clientY - rb.top  + viewport.scrollTop  + 12) + "px";
-}
-function showTooltipForCourse(c, clientX, clientY){
-  activeTooltipTarget = c.id;
-  const list = c.reqNames?.length
-    ? `<div>Requisitos:</div><ul style="margin:6px 0 0 18px; padding:0">${c.reqNames.map(r=>`<li>${normalizeName(r)}</li>`).join("")}</ul>`
-    : `<em>Sin requisitos</em>`;
-  tooltip.innerHTML = `<strong>${c.name}</strong><div style="margin-top:6px">${list}</div>`;
-  tooltip.hidden = false;
-  positionTooltip(clientX, clientY);
-  requestAnimationFrame(()=> tooltip.classList.add("show"));
-}
-function hideTooltip(){
-  tooltip.classList.remove("show");
-  activeTooltipTarget = null;
-  setTimeout(()=>{ if(!activeTooltipTarget) tooltip.hidden = true; }, 180);
-}
-function cancelTooltip(){ clearTimeout(hoverTimer); if (activeTooltipTarget) hideTooltip(); }
