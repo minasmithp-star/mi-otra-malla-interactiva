@@ -30,7 +30,10 @@
     <div class="utility">
       <div id="progress" class="progress">
         <div class="bar"><span class="fill" style="width:0%"></span></div>
-        <div class="label"><strong>Progreso:</strong> <span id="progress-text">0 / 0 (0%)</span></div>
+        <div class="label">
+          <strong>Créditos aprobados:</strong>
+          <span id="credits-text">0 / 420</span>
+        </div>
       </div>
 
       <div class="filterbox">
@@ -52,14 +55,12 @@
 
     <section id="panel-avance" class="panel-avance">
       <h3>Avance Detallado</h3>
-      <div class="grid-avance" id="avance-grid">
-        <!-- Se llena dinámicamente: Global / Por Año / Por Semestre -->
-      </div>
+      <div class="grid-avance" id="avance-grid"></div>
     </section>
 
     <small class="hint">
       Clic en una <strong>asignatura</strong> desbloqueada para marcarla como <strong>aprobada</strong>.
-      Usa ⭐ para <strong>planificar</strong> e 📝 para <strong>notas</strong>.
+      Usa ⭐ para <strong>planificar</strong>, 📝 para <strong>notas</strong>, y toca el chip 🧮 para editar <strong>créditos</strong>.
       Mantén 0.5s sobre una asignatura <em>bloqueada</em> (o mantén presionado en móvil) para ver sus requisitos.
     </small>
   </header>
@@ -78,6 +79,37 @@
         <div class="modal-actions">
           <button id="notes-cancel" value="cancel" class="btn btn-outline">Cancelar</button>
           <button id="notes-save" value="default" class="btn">Guardar nota</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Modal Agregar Optativa/Electiva -->
+    <dialog id="add-modal" class="modal">
+      <form method="dialog" class="modal-card">
+        <h4>Agregar asignatura</h4>
+        <div class="form-row">
+          <label>Tipo</label>
+          <select id="add-type">
+            <option value="optativa">Optativa</option>
+            <option value="electiva">Electiva</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Nombre</label>
+          <input id="add-name" type="text" placeholder="Nombre de la asignatura" required />
+        </div>
+        <div class="form-row">
+          <label>Créditos</label>
+          <input id="add-credits" type="number" min="0" max="50" step="1" value="0" />
+        </div>
+        <div class="form-row">
+          <label>Prerrequisitos (opcionales)</label>
+          <div id="add-reqs" class="reqs-list"></div>
+          <small class="muted">Puedes seleccionar varios.</small>
+        </div>
+        <div class="modal-actions">
+          <button id="add-cancel" value="cancel" class="btn btn-outline">Cancelar</button>
+          <button id="add-save" value="default" class="btn">Agregar</button>
         </div>
       </form>
     </dialog>
